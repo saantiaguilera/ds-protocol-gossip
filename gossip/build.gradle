@@ -1,0 +1,8 @@
+apply plugin: 'kotlin'
+
+compileKotlin.kotlinOptions.jvmTarget = JavaVersion.VERSION_1_8
+compileTestKotlin.kotlinOptions.jvmTarget = JavaVersion.VERSION_1_8
+
+dependencies {
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion"
+}
