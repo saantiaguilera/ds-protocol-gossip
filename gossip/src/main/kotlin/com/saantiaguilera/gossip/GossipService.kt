@@ -6,6 +6,10 @@ import java.io.ObjectOutputStream
 import java.io.ByteArrayOutputStream
 import java.net.*
 import java.util.*
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
+
+
 
 
 class GossipService {
@@ -13,10 +17,10 @@ class GossipService {
     private val memberList by lazy { ArrayList<GossipMember>() }
     private val deadList by lazy { ArrayList<GossipMember>() }
 
-    private val gossipingPollInterval: Int = 100
-    private val gossipCleanupTime: Int = 10_000
+    internal val gossipingPollInterval = 100L
+    internal val gossipCleanupTime = 10_000L
 
-    private val server by lazy { DatagramSocket(me.port) }
+    private var threadDelegate: Thread? = null
 
     private val me by lazy {
         val address = InetAddress.getLocalHost().hostAddress
@@ -26,7 +30,7 @@ class GossipService {
     fun add(gossipMember: GossipMember) = memberList.add(gossipMember)
     fun remove(gossipMember: GossipMember) = memberList.remove(gossipMember)
 
-    fun send() {
+    internal fun gossip() {
         me.heartbeat = me.heartbeat++
 
         // If we are asked to gossip, make it sequentially. Else we might f**k our heartbeat
@@ -42,6 +46,24 @@ class GossipService {
                 socket.send(DatagramPacket(byteArr, byteArr.size, InetSocketAddress(member.host, member.port)))
                 socket.close()
             }
+        }
+    }
+
+    /**
+     * Watchout this function will create a daemon thread!
+     */
+    fun run() {
+        shutdown()
+        threadDelegate = Thread(GossipRunnable(this)).apply {
+            isDaemon = true
+            start()
+        }
+    }
+
+    fun shutdown() {
+        if (threadDelegate != null && threadDelegate!!.isAlive) {
+            // Since its a daemon, we cant join. We interrupt it
+            threadDelegate!!.interrupt()
         }
     }
 
