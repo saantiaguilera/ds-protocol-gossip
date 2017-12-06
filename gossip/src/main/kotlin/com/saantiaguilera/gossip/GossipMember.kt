@@ -26,4 +26,11 @@ data class GossipMember(val host: String, val port: Int, @Volatile var heartbeat
                 clusterName == other.clusterName
     }
 
+    override fun hashCode(): Int {
+        var result = host.hashCode()
+        result = 31 * result + port
+        result = 31 * result + clusterName.hashCode()
+        return result
+    }
+
 }
