@@ -1,20 +1,20 @@
 package com.saantiaguilera.gossip
 
-import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.experimental.delay
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Runnable that will run according to the poll interval setted by the service, and ask the
  * service to do a gossiping operation
  */
-class OutgoingGossipRunnable(private val gossipService: GossipService) : Runnable {
+class OutgoingGossipRunnable(private val gossipService: GossipService) {
 
     private val keepRunning = AtomicBoolean(true)
 
-    override fun run() {
+    operator suspend fun invoke() {
         while (keepRunning.get()) {
             try {
-                TimeUnit.MILLISECONDS.sleep(gossipService.gossipingPollInterval)
+                delay(gossipService.gossipingPollInterval)
                 gossipService.send()
             } catch (ignored: InterruptedException) {
                 keepRunning.set(false)

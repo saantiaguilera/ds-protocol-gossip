@@ -3,6 +3,9 @@ apply plugin: 'kotlin'
 compileKotlin.kotlinOptions.jvmTarget = JavaVersion.VERSION_1_8
 compileTestKotlin.kotlinOptions.jvmTarget = JavaVersion.VERSION_1_8
 
+kotlin.experimental.coroutines = 'enable'
+
 dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion"
+    compile "org.jetbrains.kotlinx:kotlinx-coroutines-core:0.19.2"
 }

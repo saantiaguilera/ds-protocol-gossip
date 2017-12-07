@@ -1,5 +1,7 @@
 package com.saantiaguilera.gossip
 
+import kotlinx.coroutines.experimental.Job
+import kotlinx.coroutines.experimental.launch
 import java.io.ByteArrayInputStream
 import java.io.ObjectOutputStream
 import java.io.ByteArrayOutputStream
@@ -26,10 +28,10 @@ class GossipService {
     internal val gossipingPollInterval = 100L
 
     /**
-     * Threads for delegating incoming / outgoing gossiping functions
+     * Coroutines for delegating incoming / outgoing gossiping functions
      */
-    private var outgoingGossipsThread: Thread? = null
-    private var incomingGossipsThread: Thread? = null
+    private var outgoingGossipsCoroutine: Job? = null
+    private var incomingGossipsCoroutine: Job? = null
 
     /**
      * The member attached to this service
@@ -94,7 +96,7 @@ class GossipService {
     /**
      * Incoming gossiping, update our member lists
      */
-    internal fun receive() {
+    suspend internal fun receive() {
         val buffer = ByteArray(Integer.MAX_VALUE)
         val packet = DatagramPacket(buffer, buffer.size)
 
@@ -158,7 +160,7 @@ class GossipService {
 
     /**
      * Run the service.
-     * Watch out this function will create daemon threads!
+     * Watch out this function will create daemon coroutines!
      */
     fun run() {
         // Shutdown last session if there is one.
@@ -169,15 +171,9 @@ class GossipService {
                 .filter { (member, _) -> member != me }
                 .forEach { (_, timer) -> timer.start() }
 
-        // Start threads for outgoing and incoming gossipings
-        outgoingGossipsThread = Thread(OutgoingGossipRunnable(this)).apply {
-            isDaemon = true
-            start()
-        }
-        incomingGossipsThread = Thread(IncomingGossipRunnable(this)).apply {
-            isDaemon = true
-            start()
-        }
+        // Start coroutines for outgoing and incoming gossipings
+        outgoingGossipsCoroutine = launch { OutgoingGossipRunnable(this@GossipService)() }
+        incomingGossipsCoroutine = launch { IncomingGossipRunnable(this@GossipService)() }
     }
 
     /**
@@ -187,13 +183,13 @@ class GossipService {
         // Turn timers off
         memberList.forEach { _, timer -> timer.stop() }
 
-        // Stop threads
-        if (outgoingGossipsThread != null && outgoingGossipsThread!!.isAlive) {
+        // Stop coroutines
+        if (outgoingGossipsCoroutine != null && outgoingGossipsCoroutine!!.isActive) {
             // Since its a daemon, we cant join. We interrupt it
-            outgoingGossipsThread!!.interrupt()
+            outgoingGossipsCoroutine!!.cancel()
         }
-        if (incomingGossipsThread != null && incomingGossipsThread!!.isAlive) {
-            incomingGossipsThread!!.interrupt()
+        if (incomingGossipsCoroutine != null && incomingGossipsCoroutine!!.isActive) {
+            incomingGossipsCoroutine!!.cancel()
         }
     }
 
