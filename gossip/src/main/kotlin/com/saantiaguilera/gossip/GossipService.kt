@@ -74,7 +74,7 @@ class GossipService {
      * Do a gossiping operation. We will increment our heartbeat and broadcast our members to a
      * random gossiper
      */
-    internal fun send() {
+    suspend internal fun send() {
         me.heartbeat = me.heartbeat++
 
         // If we are asked to gossip, make it sequentially. Else we might f**k our heartbeat
